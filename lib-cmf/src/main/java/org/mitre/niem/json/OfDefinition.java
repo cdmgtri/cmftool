@@ -82,7 +82,7 @@ public class OfDefinition extends Of {
           property.name());
 
       addRequired(label);
-    } else {
+    } else if (cardinalities.size() > 1) {
       // get the first entry
       var cardinality = cardinalities.get(0);
 
