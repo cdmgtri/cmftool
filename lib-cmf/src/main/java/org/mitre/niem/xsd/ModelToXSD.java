@@ -274,6 +274,8 @@ public abstract class ModelToXSD {
         simpleTypes =  new HashSet<>();
         for (var dt : stUs) {
             if (null == dt) continue;           // eg. datatype of xml:lang
+            // External CMF references have an outside URI but no attached Namespace
+            if (dt.isOutsideRef() || dt.namespace() == null) continue;
             var dtnsU = dt.namespaceURI();
             if (W3C_XML_SCHEMA_NS_URI.equals(dtnsU)) continue;
             if (!dt.isModelComponent()) continue;
@@ -625,7 +627,7 @@ public abstract class ModelToXSD {
         var rE  = doc.createElementNS(W3C_XML_SCHEMA_NS_URI, "xs:restriction");
         var bdt = r.base();
         setAttribute(rE, "base", baseQ);
-        refnsUS.add(bdt.namespaceURI());
+        if (bdt.namespace() != null) refnsUS.add(bdt.namespaceURI());
         
         var fL = new ArrayList<>(r.facetL());
         Collections.sort(fL);
@@ -690,6 +692,10 @@ public abstract class ModelToXSD {
     // The schema QName corresponding to a datatype object depends on whether
     // we have created an xs:simpleType or xs:complexType element for it.
     protected String datatypeQName (Datatype dt) {
+        if (dt.qname().isEmpty() && dt.isOutsideRef()
+                && dt.outsideURI().startsWith(W3C_XML_SCHEMA_NS_URI + "/")) {
+            return "xs:" + Model.uriToName(dt.outsideURI());
+        }
         if (!simpleTypes.contains(dt)) return dt.qname();
         else return replaceSuffix(dt.qname(), "Type", "SimpleType");
     }

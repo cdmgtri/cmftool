@@ -32,29 +32,29 @@ import org.w3c.dom.Element;
 
 /**
  * A class for a Class object in a CMF model.
- * 
+ *
  * @author Scott Renner
  * <a href="mailto:sar@mitre.org">sar@mitre.org</a>
  */
 public class ClassType extends Component {
-    
+
     public ClassType () { super(); }
     public ClassType (String outsideURI) { super(outsideURI); }
     public ClassType (Namespace ns, String name) { super(ns, name); }
-    
+
     @Override
     public int getType ()           { return CMF_CLASS; }
     @Override
     public boolean isClassType ()   { return true; }
     @Override
     public String cmfElement ()     { return "Class"; }
-    
+
     private boolean isAbstract = false;         // cmf:AbstractIndicator
     private String refCode = "";                // cmf:ReferenceCode
     private ClassType subclassOf = null;        // cmf:SubClassOf
     private final List<PropertyAssociation> propL = new ArrayList<>();  // cmf:ChildPropertyAssociation
     private final List<AnyProperty> anyL = new ArrayList<>();           // cmf:AnyProperty
-    
+
     @Override
     public boolean isAbstract ()                    { return isAbstract; }
     @Override
@@ -62,22 +62,30 @@ public class ClassType extends Component {
     public ClassType subClassOf ()                  { return subclassOf; }
     public List<PropertyAssociation> propAssocL ()  { return propL; }
     public List<AnyProperty> anyL ()                { return anyL; }
-    
+
     public boolean isAssociationClass ()        { return name().endsWith("AssociationType"); }
     public boolean isAdapterClass ()            { return name().endsWith("AdapterType"); }
-    public boolean isAugmentationClass ()       { return name().endsWith("AugmentationType"); }    
+    public boolean isAugmentationClass ()       { return name().endsWith("AugmentationType"); }
     public boolean isLiteralClass ()            { return null != literalDatatype(); }
-    public boolean isObjectClass () { 
+    public boolean isObjectClass () {
         return !isAssociationClass() && !isAdapterClass() && !isAugmentationClass() && !isLiteralClass();
     }
 
-    
+
     public void setIsAbstract (boolean f)       { isAbstract = f; }
     @Override
     public void setReferenceCode (String s)     { super.setReferenceCode(s); refCode = s; }
     public void setSubclass (ClassType c)       { subclassOf = c; }
-    
+
     public void addPropertyAssociation (PropertyAssociation pa) {
+        // Skip if XSD loading encounters the same property association more than once
+        for (var existing : propL) {
+            if (existing.property().uri().equals(pa.property().uri())
+                    && existing.minOccurs().equals(pa.minOccurs())
+                    && existing.maxOccurs().equals(pa.maxOccurs())) {
+                return;
+            }
+        }
         propL.add(pa);
     }
     public void addAnyProperty (AnyProperty ap) {
@@ -88,11 +96,11 @@ public class ClassType extends Component {
         else if (null != subclassOf) return subclassOf.effectiveReferenceCode();
         else return "NONE";
     }
-    
+
     public boolean isReferenceable () {
         return (!"NONE".equals(effectiveReferenceCode()));
     }
-    
+
     // Returns the literal DataProperty of this class, if it has one,
     // otherwise returns null.  If you want to know if the class inherits
     // a literal property, you must follow the subClassOf links yourself.
@@ -104,7 +112,7 @@ public class ClassType extends Component {
         if (!p.isDataProperty()) return null;
         return ((DataProperty)p);
     }
-    
+
     // Returns the datatype of the literal property of this class, if it
     // has one, otherwise returns null.
     public Datatype literalDatatype () {
@@ -112,14 +120,14 @@ public class ClassType extends Component {
         if (null == ldp) return null;
         return ldp.datatype();
     }
-    
+
     public boolean hasSimpleContent () {
         var ctn = name(); // DEBUG
         if (null != literalDatatype()) return true;
         else if (null == subClassOf()) return false;
         else return subClassOf().hasSimpleContent();
-    }    
-    
+    }
+
     public boolean hasXmlLang () {
         if (null != subClassOf() && subClassOf().hasXmlLang()) return true;
         for (var pa : propAssocL()) {
@@ -129,7 +137,7 @@ public class ClassType extends Component {
         }
         return false;
     }
-    
+
     public boolean isRepeatableProperty (Property p) {
         if (null != subClassOf() && subClassOf().isRepeatableProperty(p)) return true;
         for (var pa : propAssocL()) {
@@ -141,40 +149,40 @@ public class ClassType extends Component {
         }
         return false;
     }
-    
-    
+
+
     @Override
     public boolean addChild (String eln, String loc, CMFObject child) throws CMFException {
         if (super.addChild(eln, loc, child)) return true;
         return child.addToClassType(eln, loc, this);
     }
-    
+
     @Override
     public boolean addToAugmentRecord (String eln, String loc, AugmentRecord ar) {
         ar.setClassType(this);
         return true;
     }
-        
+
     @Override
     public boolean addToClassType (String eln, String loc, ClassType c) {
         c.setSubclass(this);
         return true;
     }
-    
+
     @Override
     public boolean addToModel (String eln, String loc, Model m) {
         m.addClassType(this);
         return true;
     }
-    
+
     @Override
     public boolean addToObjectProperty (String eln, String loc, ObjectProperty op) {
         op.setClassType(this);
-        return true;        
+        return true;
     }
-    
+
     @Override
-    public void addComponentCMFChildren (ModelXMLWriter w, Document doc, Element c, Set<Namespace>nsS)  { 
+    public void addComponentCMFChildren (ModelXMLWriter w, Document doc, Element c, Set<Namespace>nsS)  {
         super.addComponentCMFChildren(w, doc, c, nsS);
         w.addClassTypeChildren(doc, c, this, nsS);
     }

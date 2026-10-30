@@ -102,13 +102,13 @@ import static org.w3c.dom.Node.ELEMENT_NODE;
 
 /**
  * A class to create a Model object from a NIEM XSD schema. Not reusable.
- * 
+ *
  * @author Scott Renner
  * <a href="mailto:sar@mitre.org">sar@mitre.org</a>
  */
 public class ModelFromXSD {
     static final Logger LOG = LogManager.getLogger(ModelFromXSD.class);
-    
+
     private Model m = null;
     private NIEMSchema sch = null;
     private XSModel xs = null;
@@ -116,7 +116,7 @@ public class ModelFromXSD {
     private final XPathExpression XPR_ANYATT;              // all the xs:anyAttribute descendants
     private final XPathExpression XPR_BASE;                // first @base attribute in descendants
     private final XPathExpression XPR_EXT_CHILDREN;        // all children of xs:extension
-    
+
     public ModelFromXSD () throws XMLSchemaException {
         var XPF = XPathFactory.newInstance();
         try {
@@ -127,12 +127,12 @@ public class ModelFromXSD {
             throw new XMLSchemaException(ex.getMessage());
         }
      }
-    
+
     public Model createModel (String... args) throws XMLSchemaException, CMFException {
         sch = new NIEMSchema(args);
         return createModel(sch);
     }
-    
+
     public Model createModel (NIEMSchema s) throws CMFException {
         m = new Model();
         sch = s;
@@ -152,7 +152,7 @@ public class ModelFromXSD {
         createAugmentRecords();
         return m;
     }
-    
+
     // Construct a list of top-level type definition and component declaration
     // elements for each schema document.  Also collect the appinfo attributes for
     // all defs and decls in the schema.
@@ -192,7 +192,7 @@ public class ModelFromXSD {
             }
         }
     }
-    
+
     // Create and populate Namespace objects for all the model namespaces.
     // The XSD namespace is automatically part of every model.  The XML namespace
     // is added later on demand.
@@ -208,7 +208,7 @@ public class ModelFromXSD {
             ns.setKindCode(kcode);
             ns.setVersion(sd.version());
             ns.setArchVersion(sd.niemVersion());
-            ns.setLanguage(sd.language());      
+            ns.setLanguage(sd.language());
             ns.setConformanceTargets(sd.ctAssertions());
             ns.docL().addAll(sd.documentation());
             for (var imp : sd.importElements()) {
@@ -219,7 +219,7 @@ public class ModelFromXSD {
             m.addNamespace(ns);
         }
     }
-    
+
     // Create LocalTerm objects for the Namespace object from top-level
     // xs:annotation/xs:appinfo elements in the schema document.
     private void createLocalTerms (Namespace ns, NIEMSchemaDocument sd) {
@@ -230,7 +230,7 @@ public class ModelFromXSD {
         for (int i = 0; i < sns.getLength(); i++) {
             if (ELEMENT_NODE != sns.item(i).getNodeType()) continue;
             if (!"annotation".equals(sns.item(i).getLocalName())) continue;
-            var annE = (Element)sns.item(i);           
+            var annE = (Element)sns.item(i);
             var anns = annE.getElementsByTagNameNS(W3C_XML_SCHEMA_NS_URI, "appinfo");
             for (int j = 0; j < anns.getLength(); j++) {
                 var appE = (Element)anns.item(j);
@@ -253,20 +253,20 @@ public class ModelFromXSD {
                         lt.addCitation(stx);
                     }
                     ns.addLocalTerm(lt);
-                }  
+                }
             }
         }
     }
-    
-    // Process the appinfo:Augmentation elements in all the namespaces.  
-    // In most, the augmenting property will be an attribute.  
-    // If the augmented type has simple content, the augmenting property can 
+
+    // Process the appinfo:Augmentation elements in all the namespaces.
+    // In most, the augmenting property will be an attribute.
+    // If the augmented type has simple content, the augmenting property can
     // also be an ObjectProperty -- and then the message schema will contain a
     // reference attribute.
     private final Map<String,List<Element>> augments = new HashMap<>(); // nsU -> appinfo:Augmentation elements
     private final Set<String> attAugTypeUS           = new HashSet<>(); // set of types with att augmentations
     private boolean anyGlobalLitAugF = false;
-    
+
     private void processAugmentRecords () {
         for (var ns : m.namespaceSet()) {
             var nsU   = ns.uri();
@@ -279,7 +279,7 @@ public class ModelFromXSD {
             var aeL   = new ArrayList<Element>();
             augments.put(nsU, aeL);
             for (int i = 0; i < augNL.getLength(); i++)  {
-                var augE  = (Element)augNL.item(i);                
+                var augE  = (Element)augNL.item(i);
                 var typeQ = augE.getAttribute("class");
                 var codes = augE.getAttribute("globalClassCode");
                 aeL.add(augE);
@@ -299,10 +299,10 @@ public class ModelFromXSD {
             }
         }
     }
-    
+
     // Process all of the type definitions.  Some will turn into datatype objects,
     // some into literal class objects, some into ordinary class objects.
-    
+
     private static final Set<String> EMPTY_STRING_SET = new HashSet<>();
     private final Map<String,XSSimpleTypeDefinition> dtU2xstype = new HashMap<>();  // datatype uri -> XSSimpleType object
     private final Map<String,String> stU2dtU                    = new HashMap<>();  // FooSimpleType renamed FooType
@@ -387,7 +387,7 @@ public class ModelFromXSD {
             if (!wrapU.isEmpty()) {
                 stU2dtU.put(stU, wrapU);        // use WrapType instead of FooSimpleType
                 dtU2xstype.put(wrapU, xstype);  // build WrapType from FooSimpleType definition
-            } 
+            }
             // Case #2: Schema doesn't have a FooType, create one for this simple type definition
             else if (!comp2Element.containsKey(cscU)) {
                 stU2dtU.put(stU, cscU);                         // use FooType instead of FooSimpleType
@@ -430,12 +430,12 @@ public class ModelFromXSD {
                     dtU2xstype.put(stU, xstype);
                     datatypeUs.add(stU);
                     simpleDtUs.add(stU);
-                    litPropTypeU.put(cscU, stU);                    
+                    litPropTypeU.put(cscU, stU);
                 }
             }
         }
     }
- 
+
     // Create the right kind of datatype object (Restriction, List, Union)
     // and add to the model.  Objects are empty now, populated later.
     private void initializeDatatypes () {
@@ -449,14 +449,14 @@ public class ModelFromXSD {
             case VARIETY_LIST:   dt = new ListType(dtns, name); break;
             case VARIETY_UNION:  dt = new Union(dtns, name); break;
             }
-            m.addDatatype(dt);            
-        }   
+            m.addDatatype(dt);
+        }
     }
-    
+
     // If we tried to do this in one pass, we would wind up trying to populate
     // <xs:list itemType="foo:BarType"> before we had the object for foo:BarType.
     // Two passes is so much easier than some complicated recursive approach!
-    private void populateDatatypes () throws CMFException {    
+    private void populateDatatypes () throws CMFException {
         for (var dtU : datatypeUs) {
             if (!sch.isModelComponentU(dtU)) continue;  // init but don't populate external datatypes
             var dt     = m.uriToDatatype(dtU);
@@ -472,7 +472,7 @@ public class ModelFromXSD {
             case CMF_LIST:        populateListType((ListType)dt, xstype, appi); break;
             case CMF_RESTRICTION: populateRestriction((Restriction)dt, xstype, sd, schE, clsaU); break;
             case CMF_UNION:       populateUnion((Union)dt, xstype); break;
-            }            
+            }
         }
     }
 
@@ -490,16 +490,16 @@ public class ModelFromXSD {
     private void populateListType (ListType lt, XSSimpleTypeDefinition xstype, Map<String,String>appi) throws CMFException {
         var ltname = lt.name();
         var xitem = xstype.getItemType();       // list item simple type def from XS ST def
-        var itemU = xObjToURI(xitem);           // URI for list item 
+        var itemU = xObjToURI(xitem);           // URI for list item
         var idt   = getDatatype(itemU);
         if (null == idt)
             throw new CMFException(
                 String.format("can't find item datatype %s for list datatype %s", itemU, lt.uri()));
         lt.setItemType(idt);
     }
-    
+
     // Populate a Restriction object with appinfo from its CSC type definition,
-    // including CLSA appinfo. Populate the facet list from its XS simple type 
+    // including CLSA appinfo. Populate the facet list from its XS simple type
     // definition. Get the base type from the schema document element.
     private void populateRestriction (
             Restriction r,                          // populate this object
@@ -531,7 +531,7 @@ public class ModelFromXSD {
             var fval  = xf.getLexicalFacetValue();
             if (Xerces.isDefaultFacet(xstype, fkind, fval)) continue;
             var docL  = Xerces.getDocumentation(xf);
-            var fobj  = new Facet();      
+            var fobj  = new Facet();
             fobj.setCategory(fcode);
             fobj.setValue(fval);
             fobj.setDocumentation(docL);
@@ -562,7 +562,7 @@ public class ModelFromXSD {
             }
         }
         Collections.sort(r.facetL());
-        
+
         // Determine the base datatype of this restriction.
         // Case #1: @base is FooSimpleType without a wrapper
         // Case #2: @base is FooType or wrapped FooSimpleType
@@ -595,7 +595,7 @@ public class ModelFromXSD {
         var dtname = dt.qname();
         r.setBase(dt);
     }
-    
+
     // Populates a Union object with appinfo from its CSC type definition plus
     // the member types from its simple type definition.
     private void populateUnion (Union u, XSSimpleTypeDefinition xstype) throws CMFException {
@@ -610,7 +610,7 @@ public class ModelFromXSD {
             u.addMember(mdt);
         }
     }
-    
+
     // Create a ClassType object for each model CCC type definition, and also for
     // the literal classes identified earlier.  Augmentation types aren't going to
     // be part of the model, but we create and add them here, use and remove them later.
@@ -639,18 +639,18 @@ public class ModelFromXSD {
             var ct     = new ClassType(ctns, ctname);
             m.addClassType(ct);
             allClassUs.add(ct.uri());
-        }        
+        }
     }
-    
+
     // We have all the Datatype objects and can create DataProperty objects
     // from attribute declarations in model namespaces.  We also create objects
     // for attributes declared in extension namespaces, but will add them to the
     // model later, if and only if they are referenced in a model class.
-    // Iterate over attribute declaration elements in the schema documents to 
+    // Iterate over attribute declaration elements in the schema documents to
     // efficiently get the appinfo attributes.
     private final Map<String,Property> uri2externalProp = new HashMap<>();
     private void createPropertiesFromAttributes () {
-        for (var sd : sch.schemaDocL()) { 
+        for (var sd : sch.schemaDocL()) {
             if (!sch.isModelNamespace(sd) && !sch.isExternal(sd)) continue;
             var nsU  = sd.targetNamespace();               // namespace URI
             var ns   = m.namespaceObj(nsU);                // namespace object
@@ -675,18 +675,19 @@ public class ModelFromXSD {
             }
         }
     }
-    
+
     // You might think we're now ready to populate all the Property objects.
     // But we have to ensure we have the Property object when we process
     // the substitutionGroup.  So it's the two-phase thing again.
     // We create property objects for element declarations in external namespaces
-    // but don't add them to the model yet.  Also keep track of augmentations 
+    // but don't add them to the model yet.  Also keep track of augmentations
     // and augmentation points, we use and remove them from the model later.
-    private final Set<ObjectProperty> globalAugS = new HashSet<>();
-    private final List<ObjectProperty> augPropL = new ArrayList<>();
-    private final List<ObjectProperty> augPointL = new ArrayList<>();
+    // Store URIs because the second pass can replace the original object properties
+    private final Set<String> globalAugS = new HashSet<>();
+    private final List<String> augPropL = new ArrayList<>();
+    private final List<String> augPointL = new ArrayList<>();
     private void initializePropertiesFromElements () {
-        for (var sd : sch.schemaDocL()) { 
+        for (var sd : sch.schemaDocL()) {
             if (sch.isModelNamespace(sd)) {
                 var nsU  = sd.targetNamespace();               // namespace URI
                 var ns   = m.namespaceObj(nsU);                // namespace object
@@ -697,16 +698,16 @@ public class ModelFromXSD {
                     var typeU = schemaQNToURI(schE, typeQ);
                     if (typeU.isEmpty() || allClassUs.contains(typeU)) {
                         var op = new ObjectProperty(ns, name);
-                        if (name.endsWith("AugmentationPoint")) augPointL.add(op);
-                        else if (name.endsWith("Augmentation")) augPropL.add(op);
+                        if (name.endsWith("AugmentationPoint")) augPointL.add(op.uri());
+                        else if (name.endsWith("Augmentation")) augPropL.add(op.uri());
                         else if (sch.isExternal(nsU)) uri2externalProp.put(op.uri(), op);
-                        m.addProperty(op);    // augmentation components are removed from model later                    
+                        m.addProperty(op);    // augmentation components are removed from model later
                     }
                     else {
                         var dp = new DataProperty(ns, name);
                         if (sch.isExternal(nsU)) uri2externalProp.put(dp.uri(), dp);
-                        else m.addProperty(dp);                    
-                    }           
+                        else m.addProperty(dp);
+                    }
                 }
             }
             else if (sch.isExternal(sd)) {
@@ -726,11 +727,11 @@ public class ModelFromXSD {
                         else p = new ObjectProperty(ns, name);
                     }
                     uri2externalProp.put(p.uri(), p);
-                }                
+                }
             }
         }
     }
-    
+
     // The model has (unpopulated) ClassType objects and (complete) Datatype objects,
     // so now we can create ObjectProperty and DataProperty objects from element
     // declarations.  Properties from external namespaces don't get populated because
@@ -757,19 +758,19 @@ public class ModelFromXSD {
                     var ct = m.uriToClassType(typeU);
                     op.setClassType(ct);
                     op.setReferenceCode(appi.getOrDefault("referenceCode", ""));
-                    p = op;                    
+                    p = op;
                 }
                 else {
                     var dp = m.uriToDataProperty(propU);
                     var dt = getDatatype(typeU);
                     dp.setDatatype(dt);
-                    p = dp;                      
+                    p = dp;
                 }
                 if (!subQ.isEmpty()) {
                     var subU   = schemaQNToURI(schE, subQ);
                     var subnsU = m.uriToNSU(subU);
                     if (NSK_STRUCTURES == NamespaceKind.namespaceToKindValue(subnsU)) {
-                        globalAugS.add((ObjectProperty)p);
+                        globalAugS.add(p.uri());
                     }
                     else {
                         var subp = m.uriToProperty(subU);
@@ -784,8 +785,8 @@ public class ModelFromXSD {
             }
         }
     }
-    
-    // Create the literal property for each literal class.  
+
+    // Create the literal property for each literal class.
     // Once created, add to the literal class object.
     private void createLiteralProperties () {
         for (var ltU : litClassUs) {
@@ -806,7 +807,7 @@ public class ModelFromXSD {
             ct.addPropertyAssociation(pa);
         }
     }
-    
+
     // Populate the ClassType objects from the xs:complexType element in the
     // schema document.  Can't get everything needed from the XSModel objects,
     // or correlate those objects with with the schema DOM.  Does make you wonder if using
@@ -836,7 +837,7 @@ public class ModelFromXSD {
                 if (null != basect) ct.setSubclass(basect);
                 ct.setIsAbstract(xctype.getAbstract());
                 ct.setReferenceCode(appi.getOrDefault("referenceCode", ""));
-                
+
                 // Process child elements of xs:extension in this declaration.
                 // Usually one xs:sequence plus zero or more attribute references.
                 // But it could be a single xs:choice instead :-(
@@ -853,10 +854,10 @@ public class ModelFromXSD {
             }
         }
     }
-    
+
     private Map<Set<Property>,Property> choiceSets = new HashMap<>();
-    
-    // Populate the ClassType object with a synthetic abstract property created 
+
+    // Populate the ClassType object with a synthetic abstract property created
     // from the children of the xs:choice element.  If no children, do nothing.
     // If one child, make a PropertyAssociation for it.  If more than one, make
     // each choice a subproperty of the synthetic property.  Also remember this
@@ -878,7 +879,7 @@ public class ModelFromXSD {
             chL.add(prop);
         }
         if (0 == chS.size()) return;
-        if (1 == chS.size()) { 
+        if (1 == chS.size()) {
             addPropAssoc(ct, sd, ref, min, max);
             return;
         }
@@ -909,18 +910,19 @@ public class ModelFromXSD {
             m.addProperty(synth);
             choiceSets.put(chS, synth);
         }
-        var docL = getDocumentation(choice);        
+        var docL = getDocumentation(choice);
         var cpa = new PropertyAssociation();
         cpa.setProperty(synth);
         cpa.setDocumentation(docL);
         if (!max.isBlank()) cpa.setMaxOccurs(max);
         if (!min.isBlank()) cpa.setMinOccurs(min);
-        ct.propAssocL().add(cpa);
+        // Use the deduplicating association path for choices
+        ct.addPropertyAssociation(cpa);
     }
-    
+
     // Populate the ClassType object from the children of the xs:sequence element.
     // These can be xs:element, xs:any, or xs:choice elements.  We need the schema
-    // document object to correctly interpret the QNames in the descendants of 
+    // document object to correctly interpret the QNames in the descendants of
     // the xs:sequence.
     private void processSequence (ClassType ct, NIEMSchemaDocument sd, Element seq) {
         var childL = seq.getChildNodes();
@@ -930,12 +932,12 @@ public class ModelFromXSD {
             var e = (Element)node;
             switch (e.getLocalName()) {
             case "choice":  processChoice(ct, sd, e); break;
-            case "element": addPropAssoc(ct, sd, e); break;       
+            case "element": addPropAssoc(ct, sd, e); break;
             case "any":     addAny(ct, e); break;
             }
         }
     }
-    
+
     // Populate the ClassType object with a PropertyAssociation created from
     // the xs:element.  We need the schema document object to correctly interpret
     // the QName in the @ref.
@@ -944,7 +946,7 @@ public class ModelFromXSD {
         var max  = e.getAttribute("maxOccurs");
         addPropAssoc(ct, sd, e, min, max);
     }
-    
+
     // Populate the ClassType object with a PropertyAssociation created from
     // the xs:element.  We need the schema document object to correctly interpret
     // the QName in the @ref.
@@ -961,15 +963,16 @@ public class ModelFromXSD {
         if ("attribute".equals(e.getLocalName())) {
             cpa.setMaxOccurs("1");
             cpa.setMinOccurs("required".equals(use) ? "1" : "0");
-        } 
+        }
         else {
             if (!max.isBlank()) cpa.setMaxOccurs(max);
             if (!min.isBlank()) cpa.setMinOccurs(min);
         }
-        ct.propAssocL().add(cpa);
+        // Use the deduplicating association path for XSD element and attribute uses
+        ct.addPropertyAssociation(cpa);
     }
-    
-    // Populate the ClassType object with an AnyPropery object created from 
+
+    // Populate the ClassType object with an AnyPropery object created from
     // either an xs:any or xs:anyAttribute element.
     private void addAny (ClassType ct, Element e) {
         var proc = e.getAttribute("processContents");
@@ -986,9 +989,9 @@ public class ModelFromXSD {
         ap.setProcessCode(proc);
         ap.setNsConstraint(ncon);
         ap.setIsAttribute("anyAttribute".equals(e.getLocalName()));
-        ct.addAnyProperty(ap);      
+        ct.addAnyProperty(ap);
     }
-    
+
     // Returns the Property object described by an xs:element reference.
     // Returns null for augmentation points.
     // Returns null for properties not in a model or external namespace.
@@ -999,7 +1002,7 @@ public class ModelFromXSD {
         var refU = sd.qnToURI(e, ref);          // URI for that QName in this document
         if (ref.startsWith("xml:")) {
             prop = getXMLproperty(ref);
-        } 
+        }
         // Add external property to the model, now that we know it's used
         else if (uri2externalProp.containsKey(refU)) {
             prop = uri2externalProp.get(refU);
@@ -1017,18 +1020,28 @@ public class ModelFromXSD {
         }
         return prop;
     }
-    
+
     // Turn augmentation elements and augmentation types into AugmentRecord objects
     // belonging to the appropriate Namespace.  Remove all augmentation components
     // (FooAugmentation, FooAugmentationPoint, FooAugmentationType) from the model.
     private static Set VALID_CODES = Set.of("ASSOCIATION", "OBJECT", "LITERAL");
     private void createAugmentRecords () {
-        for (var aprop : augPropL) {                    // augmentation properties
+        for (var augPropU : augPropL) {                  // augmentation properties
+            // Resolve the current property after the population pass may have replaced it
+            var aprop = m.uriToObjectProperty(augPropU);
+            if (aprop == null) {
+                LOG.error("augmentation property {} is missing from the model", augPropU);
+                continue;
+            }
             ClassType atype = null;
-            String gcode = null;          
+            String gcode = null;
             var augt   = aprop.classType();             // augmentation type; eg. j:EducationAugmentationType
-            var augns  = augt.namespace();              // augmenting namespace object      
-            if (globalAugS.contains(aprop)) {
+            if (augt == null) {
+                LOG.error("augmentation property {} has no class type", aprop.qname());
+                continue;
+            }
+            var augns  = augt.namespace();              // augmenting namespace object
+            if (globalAugS.contains(aprop.uri())) {
                 var name = aprop.name();
                 if (name.startsWith("Object")) gcode = "OBJECT";
                 if (name.startsWith("Association")) gcode = "ASSOCIATION";
@@ -1042,7 +1055,7 @@ public class ModelFromXSD {
                 var augp = subS.iterator().next();      // augmentation point Property
                 var augU = augp.uri();                  // augmentation point URI; eg. nc:EducationAugmentationPoint
                 var augmtU = replaceSuffix(augU, "AugmentationPoint", "Type"); // augmented class URI
-                atype  = m.uriToClassType(augmtU);      // augmented ClassType object                
+                atype  = m.uriToClassType(augmtU);      // augmented ClassType object
             }
             var index  = 0;
             for (var cpa : augt.propAssocL()) {
@@ -1072,11 +1085,13 @@ public class ModelFromXSD {
                 p.removeSubPropertyOf(apoint);
             }
         }
-        for (var op: augPointL) m.removeObjectProperty(op);
+        for (var augPointU : augPointL) {
+            m.removeObjectProperty(m.uriToObjectProperty(augPointU));
+        }
         for (var ct: m.classTypeL())
             if (ct.name().endsWith("AugmentationType"))
                 m.removeClassType(ct);
-        
+
         // Now create augmentation records from appinfo:Augmentation elements
         for (var ns : m.namespaceSet()) {
             var nsU = ns.uri();
@@ -1094,7 +1109,7 @@ public class ModelFromXSD {
                 var p      = m.uriToProperty(propU);
                 var codeL  = new String[0];
                 if (!codes.isEmpty()) codeL  = codes.split("\\s+");
-                
+
                 // Let's do a little error checking!
                 var badProp  = (null == p);
                 var badClass = (!classQ.isEmpty() && null == ct);
@@ -1103,7 +1118,7 @@ public class ModelFromXSD {
                 if (badProp || badClass || badCodes) {
                     var aeStr = "<Augmentation property=\"" + propQ + "\"";
                     if (!classQ.isEmpty()) aeStr = aeStr + " class=\"" + classQ + "\"";
-                    if (!codes.isEmpty())  aeStr = aeStr + " globalClassCode=\"" + codes + "\"";      
+                    if (!codes.isEmpty())  aeStr = aeStr + " globalClassCode=\"" + codes + "\"";
                     aeStr = aeStr + ">";
                     if (badProp)  LOG.warn("{}: unknown property in {}", nsU, aeStr);
                     if (badClass) LOG.warn("{}: unknown class in {}", nsU, aeStr);
@@ -1123,9 +1138,9 @@ public class ModelFromXSD {
             }
         }
     }
-    
+
     // Turns a datatype URI into a Datatype object.  Proxy URIs are turned into
-    // the XSD equivalent.  XSD and XML datatype objects aren't created in the 
+    // the XSD equivalent.  XSD and XML datatype objects aren't created in the
     // model until they are referenced. The XML namespace isn't added to the model
     // until an XML component is referenced, and that happens here.
     private Datatype getDatatype (String dtU) {
@@ -1148,9 +1163,9 @@ public class ModelFromXSD {
             dt = new Datatype(ns, name);
         }
         m.addDatatype(dt);
-        return dt;        
+        return dt;
     }
-    
+
     // We only create DataProperty objects for XML attributes when they are used.
     // We also create the XML namespace here if needed.
     private DataProperty getXMLproperty (String qname) {
@@ -1171,7 +1186,7 @@ public class ModelFromXSD {
         }
         return dp;
     }
-    
+
     // Returns true if the XSSimpleType object contains a model facet.
     // Default Xerces facets don't count.
     private boolean hasModelFacet (XSSimpleTypeDefinition xstype) {
@@ -1195,7 +1210,7 @@ public class ModelFromXSD {
     // Turns a QName into a component URI, using the namespace bindings in the
     // scope of the eleemnt.
     private String schemaQNToURI (Element e, String qn) {
-        
+
         if (qn.isEmpty()) return "";
         var en   = e.getAttribute("name");
         var pre  = qnToPrefix(qn);
@@ -1204,7 +1219,7 @@ public class ModelFromXSD {
         if (nsU.endsWith("/")) return nsU + name;
         return nsU + "/" + name;
     }
-    
+
     // Returns true if this complex type has or inherits attributes
     // that are not in a structures namespace.
     private boolean hasAttributes (XSComplexTypeDefinition xctype) {
@@ -1213,7 +1228,7 @@ public class ModelFromXSD {
             var xattu = (XSAttributeUse)xobjL.item(i);
             var xatt  = xattu.getAttrDeclaration();
             var nsuri = xatt.getNamespace();
-            if (NSK_STRUCTURES != NamespaceKind.namespaceToKindValue(nsuri)) return true;        
+            if (NSK_STRUCTURES != NamespaceKind.namespaceToKindValue(nsuri)) return true;
         }
         return false;
     }
@@ -1228,13 +1243,13 @@ public class ModelFromXSD {
         return true;
     }
 
-    // Returns the component URI corresponding to an XSObject.  
+    // Returns the component URI corresponding to an XSObject.
     private String xObjToURI (XSObject xo) {
         if (null == xo) return "";
         if (xo.getNamespace().endsWith("/")) return xo.getNamespace() + xo.getName();
         return xo.getNamespace() + "/" + xo.getName();
     }
-    
+
     // Returns a list of the children of all the xs:appinfo children
     // for a schema document element
     private List<Element> getAppinfoChildren (Element e) {
@@ -1246,10 +1261,10 @@ public class ModelFromXSD {
         }
         return res;
     }
-    
+
     // Returns all the appinfo attributes for a schema document element;
     // used eg. if (map.getOrDefault("orderedPropertyIndicator", "") == "true") ...
-    
+
     private final Set<String> knownAppinfoS = Set.of(
         "augmentingNamespace",
         "deprecated",
@@ -1291,7 +1306,7 @@ public class ModelFromXSD {
         var xobj  = xs.getAttributeDeclaration(name, nsuri);
         if (null == xobj) xobj = xs.getAttributeDeclaration(name, nsuri.substring(0, nsuri.length()-1));
         return xobj;
-    }    
+    }
     private XSTypeDefinition uriToXSType (String uri) {
         int indx = uri.lastIndexOf("/");
         if (indx < 0 || indx >= uri.length()) {
@@ -1308,7 +1323,7 @@ public class ModelFromXSD {
         return (XSComplexTypeDefinition)uriToXSType(uri);
     }
 
-    
+
     private void dumpXSD () {
         var nsmap = sch.namespaceMap();
         var tmap  = xs.getComponents(TYPE_DEFINITION);
@@ -1347,5 +1362,5 @@ public class ModelFromXSD {
             }        }
         System.exit(0);
     }
-    
+
 }
